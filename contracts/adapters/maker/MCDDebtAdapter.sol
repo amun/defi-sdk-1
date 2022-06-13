@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
@@ -34,7 +34,7 @@ contract MCDDebtAdapter is ProtocolAdapter, MKRAdapter {
      * @return Amount of debt of the given account for the protocol.
      * @dev Implementation of ProtocolAdapter abstract contract function.
      */
-    function getBalance(address, address account) public override returns (int256) {
+    function getBalance(address, address account) public view override returns (int256) {
         DssCdpManager manager = DssCdpManager(MANAGER);
         Vat vat = Vat(VAT);
         Jug jug = Jug(JUG);
@@ -48,11 +48,12 @@ contract MCDDebtAdapter is ProtocolAdapter, MKRAdapter {
             (, uint256 storedRate) = vat.ilks(ilk);
             (uint256 duty, uint256 rho) = jug.ilks(ilk);
             uint256 base = jug.base();
-            uint256 currentRate = mkrRmul(
-                // solhint-disable-next-line not-rely-on-time
-                mkrRpow(mkrAdd(base, duty), block.timestamp - rho, ONE),
-                storedRate
-            );
+            uint256 currentRate =
+                mkrRmul(
+                    // solhint-disable-next-line not-rely-on-time
+                    mkrRpow(mkrAdd(base, duty), block.timestamp - rho, ONE),
+                    storedRate
+                );
 
             totalValue = totalValue - int256(mkrRmul(art, currentRate));
         }

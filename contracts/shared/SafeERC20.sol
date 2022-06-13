@@ -15,9 +15,9 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 
-import "./ERC20.sol";
+import "../interfaces/ERC20.sol";
 
 /**
  * @title SafeERC20
@@ -73,6 +73,21 @@ library SafeERC20 {
             "approve",
             location
         );
+    }
+
+    function safeApproveMax(
+        ERC20 token,
+        address spender,
+        uint256 value,
+        string memory location
+    ) internal {
+        uint256 allowance = ERC20(token).allowance(address(this), spender);
+        if (allowance < value) {
+            if (allowance > 0) {
+                safeApprove(token, spender, 0, location);
+            }
+            safeApprove(token, spender, type(uint256).max, location);
+        }
     }
 
     /**

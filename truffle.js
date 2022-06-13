@@ -15,17 +15,17 @@ module.exports = {
       host: '127.0.0.1',
       port: 8545,
       network_id: '*',
-      gas: 10000000,
-      gasPrice: 1100000000,
+      gas: 6000000,
+      gasPrice: 100.1 * 1000000000,
       gasLimit: 10000000,
     },
     mainnet: {
-      provider: () => new HDWalletProvider(process.env.MNEMONIC, `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`, 0),
+      provider: () => new HDWalletProvider(process.env.MNEMONIC, `wss://mainnet.infura.io/ws/v3/${process.env.INFURA_API_KEY}`, 0),
       network_id: 1,
-      gas: 2000000,
-      gasPrice: 20000000000,
-      timeoutBlocks: 200,
-      skipDryRun: true,
+      gas: 1500000,
+      gasPrice: 85.1 * 1000000000,
+      timeoutBlocks: 20000,
+      skipDryRun: false,
     },
     kovan: {
       provider: () => new HDWalletProvider(process.env.MNEMONIC, `https://kovan.infura.io/v3/${process.env.INFURA_API_KEY}`, 0),
@@ -38,7 +38,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: '0.7.3',
+      version: '0.7.6',
       settings: {
         optimizer: {
           enabled: true,

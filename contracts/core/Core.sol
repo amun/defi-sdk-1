@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import {
@@ -26,23 +26,22 @@ import {
     AmountType
 } from "../shared/Structs.sol";
 import { InteractiveAdapter } from "../interactiveAdapters/InteractiveAdapter.sol";
-import { ERC20 } from "../shared/ERC20.sol";
+import { ERC20 } from "../interfaces/ERC20.sol";
 import { ProtocolAdapterRegistry } from "./ProtocolAdapterRegistry.sol";
 import { SafeERC20 } from "../shared/SafeERC20.sol";
 import { Helpers } from "../shared/Helpers.sol";
 import { ReentrancyGuard } from "./ReentrancyGuard.sol";
+import { Base } from "./Base.sol";
 
 /**
  * @title Main contract executing actions.
  */
-contract Core is ReentrancyGuard {
+contract Core is ReentrancyGuard, Base {
     using SafeERC20 for ERC20;
     using Helpers for uint256;
     using Helpers for address;
 
     address internal immutable protocolAdapterRegistry_;
-
-    address internal constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     event ExecutedAction(
         bytes32 indexed protocolAdapterName,
@@ -56,9 +55,6 @@ contract Core is ReentrancyGuard {
 
         protocolAdapterRegistry_ = protocolAdapterRegistry;
     }
-
-    // solhint-disable-next-line no-empty-blocks
-    receive() external payable {}
 
     /**
      * @notice Executes actions and returns tokens to account.
@@ -102,7 +98,7 @@ contract Core is ReentrancyGuard {
     /**
      * @return Address of the ProtocolAdapterRegistry contract used.
      */
-    function protocolAdapterRegistry() external view returns (address) {
+    function getProtocolAdapterRegistry() external view returns (address) {
         return protocolAdapterRegistry_;
     }
 
@@ -121,15 +117,16 @@ contract Core is ReentrancyGuard {
             action.actionType == ActionType.Deposit || action.actionType == ActionType.Withdraw,
             "C: bad action type"
         );
+
         bytes4 selector;
         if (action.actionType == ActionType.Deposit) {
-            selector = InteractiveAdapter(adapter).deposit.selector;
+            selector = InteractiveAdapter.deposit.selector;
         } else {
-            selector = InteractiveAdapter(adapter).withdraw.selector;
+            selector = InteractiveAdapter.withdraw.selector;
         }
 
-        // solhint-disable-next-line avoid-low-level-calls
         (bool success, bytes memory returnData) =
+            // solhint-disable-next-line avoid-low-level-calls
             adapter.delegatecall(
                 abi.encodeWithSelector(selector, action.tokenAmounts, action.data)
             );
@@ -147,7 +144,7 @@ contract Core is ReentrancyGuard {
     }
 
     /**
-     * @notice Returns tokens to the account used as function parameter.
+     * @notice Returns tokens to the account address.
      * @param requiredOutputs Array with required amounts for the returned tokens.
      * @param tokensToBeWithdrawn Array with the tokens returned by the adapters.
      * @param account Address that will receive all the resulting funds.
@@ -167,7 +164,11 @@ contract Core is ReentrancyGuard {
             token = requiredOutputs[i].token;
             actualOutputs[i] = AbsoluteTokenAmount({
                 token: token,
-                amount: checkRequirementAndTransfer(token, requiredOutputs[i].amount, account)
+                absoluteAmount: checkRequirementAndTransfer(
+                    token,
+                    requiredOutputs[i].absoluteAmount,
+                    account
+                )
             });
         }
 
@@ -184,7 +185,7 @@ contract Core is ReentrancyGuard {
 
     /**
      * @notice Checks the requirement for the given token and (in case the check passes)
-     * transfers tokens to the account used as function parameter.
+     * transfers tokens to the account address.
      * @param token Address of the returned token.
      * @param requiredAmount Required amount for the returned token.
      * @param account Address that will receive the returned token.
@@ -218,9 +219,7 @@ contract Core is ReentrancyGuard {
 
         if (actualAmount > 0) {
             if (token == ETH) {
-                // solhint-disable-next-line avoid-low-level-calls
-                (bool success, ) = account.call{ value: actualAmount }(new bytes(0));
-                require(success, "ETH transfer to account failed");
+                transferEther(account, actualAmount, "C: bad account");
             } else {
                 ERC20(token).safeTransfer(account, actualAmount, "C");
             }

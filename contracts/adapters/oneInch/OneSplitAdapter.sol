@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
@@ -28,10 +28,9 @@ import { ProtocolAdapter } from "../ProtocolAdapter.sol";
  */
 contract OneSplitAdapter is ProtocolAdapter {
     /**
-     * @return Amount of Uniswap Pool Tokens held by the given account.
      * @dev Implementation of ProtocolAdapter abstract contract function.
      */
-    function getBalance(address, address) public override returns (int256) {
+    function getBalance(address, address) public pure override returns (int256) {
         revert("OSA: no balance");
     }
 }

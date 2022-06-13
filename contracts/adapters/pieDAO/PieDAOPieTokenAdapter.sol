@@ -15,14 +15,15 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../../shared/ERC20.sol";
+import { ERC20 } from "../../interfaces/ERC20.sol";
 import { Component } from "../../shared/Structs.sol";
 import { TokenAdapter } from "../TokenAdapter.sol";
 import { BPool } from "../../interfaces/BPool.sol";
 import { PBasicSmartPool } from "../../interfaces/PBasicSmartPool.sol";
+import { ExperiPie } from "../../interfaces/ExperiPie.sol";
 
 /**
  * @title Token adapter for Pie pool tokens.
@@ -34,13 +35,15 @@ contract PieDAOPieTokenAdapter is TokenAdapter {
      * @return Array of Component structs with underlying tokens rates for the given asset.
      * @dev Implementation of TokenAdapter abstract contract function.
      */
-    function getComponents(address token) external override returns (Component[] memory) {
+    function getComponents(address token) external view override returns (Component[] memory) {
         address[] memory tokens = PBasicSmartPool(token).getTokens();
         uint256 totalSupply = ERC20(token).totalSupply();
-        address bPool = PBasicSmartPool(token).getBPool();
 
         Component[] memory components = new Component[](tokens.length);
 
+        address bPool = PBasicSmartPool(token).getBPool();
+
+        // if smart pool
         for (uint256 i = 0; i < tokens.length; i++) {
             components[i] = Component({
                 token: tokens[i],

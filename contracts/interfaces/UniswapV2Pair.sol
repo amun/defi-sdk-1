@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 
 /**
  * @dev UniswapV2Pair contract interface.
@@ -27,7 +27,21 @@ interface UniswapV2Pair {
 
     function burn(address) external returns (uint256, uint256);
 
-    function getReserves() external view returns (uint112, uint112);
+    function swap(
+        uint256,
+        uint256,
+        address,
+        bytes calldata
+    ) external;
+
+    function getReserves()
+        external
+        view
+        returns (
+            uint112,
+            uint112,
+            uint32
+        );
 
     function token0() external view returns (address);
 

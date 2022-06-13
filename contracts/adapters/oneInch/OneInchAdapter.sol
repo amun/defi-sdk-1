@@ -15,23 +15,22 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../shared/ERC20.sol";
+import { ProtocolAdapter } from "../ProtocolAdapter.sol";
 
 /**
- * @dev OneSplit contract interface.
- * Only the functions required for OneInchChiTokenAdapter contract are added.
- * The OneSplit contract is available here
- * github.com/CryptoManiacsZone/1inchProtocol/blob/master/contracts/OneSplit.sol.
+ * @title Adapter for OneSplit exchange.
+ * @dev Implementation of ProtocolAdapter abstract contract.
+ * Base contract for OneSplit interactive adapter.
+ * @author Igor Sobolev <sobolev@zerion.io>
  */
-interface IOneSplit {
-    function getExpectedReturn(
-        ERC20 fromToken,
-        ERC20 toToken,
-        uint256 amount,
-        uint256 parts,
-        uint256 disableFlags
-    ) external view returns (uint256 returnAmount, uint256[] memory distribution);
+contract OneInchAdapter is ProtocolAdapter {
+    /**
+     * @dev Implementation of ProtocolAdapter abstract contract function.
+     */
+    function getBalance(address, address) public pure override returns (int256) {
+        revert("OSA: no balance");
+    }
 }

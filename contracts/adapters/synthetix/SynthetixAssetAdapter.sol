@@ -15,10 +15,10 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../../shared/ERC20.sol";
+import { ERC20 } from "../../interfaces/ERC20.sol";
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
 import { Proxy } from "../../interfaces/Proxy.sol";
 import { Synthetix } from "../../interfaces/Synthetix.sol";
@@ -33,7 +33,7 @@ contract SynthetixAssetAdapter is ProtocolAdapter {
      * @return Amount of SNX locked on the protocol by the given account.
      * @dev Implementation of ProtocolAdapter abstract contract function.
      */
-    function getBalance(address token, address account) public override returns (int256) {
+    function getBalance(address token, address account) public view override returns (int256) {
         return int256(Synthetix(Proxy(token).target()).collateral(account));
     }
 }

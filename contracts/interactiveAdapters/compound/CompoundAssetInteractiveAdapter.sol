@@ -15,10 +15,10 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../../shared/ERC20.sol";
+import { ERC20 } from "../../interfaces/ERC20.sol";
 import { SafeERC20 } from "../../shared/SafeERC20.sol";
 import { TokenAmount } from "../../shared/Structs.sol";
 import { ERC20ProtocolAdapter } from "../../adapters/ERC20ProtocolAdapter.sol";
@@ -36,7 +36,7 @@ contract CompoundAssetInteractiveAdapter is InteractiveAdapter, ERC20ProtocolAda
 
     address internal constant CETH = 0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5;
     address internal constant COMP = 0xc00e94Cb662C3520282E6f5717214004A7f26888;
-    address internal constant REGISTRY = 0xE6881a7d699d3A350Ce5bba0dbD59a9C36778Cb7;
+    address internal constant REGISTRY = 0xAc41dB9741F869E432575952748e7064d299614D;
 
     /**
      * @notice Deposits tokens to the Compound protocol.
@@ -67,7 +67,7 @@ contract CompoundAssetInteractiveAdapter is InteractiveAdapter, ERC20ProtocolAda
             address cToken = CompoundRegistry(REGISTRY).getCToken(token);
             tokensToBeWithdrawn[1] = cToken;
 
-            ERC20(token).safeApprove(cToken, amount, "CAIA");
+            ERC20(token).safeApproveMax(cToken, amount, "CAIA");
             require(CToken(cToken).mint(amount) == 0, "CAIA: deposit failed");
         }
     }

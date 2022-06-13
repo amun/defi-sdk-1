@@ -14,7 +14,7 @@
     ],
     "compiler-version": [
       "error",
-      "0.7.3"
+      "0.7.6"
     ],
     "private-vars-leading-underscore": [
       "off"
@@ -24,8 +24,13 @@
     ],
     "func-visibility": [
       "warn",
-      { "ignoreConstructors": true }
+      {
+        "ignoreConstructors": true
+      }
     ],
-    "prettier/prettier": "warn"
+    "prettier/prettier": "warn",
+    "comprehensive-interface": [
+      "off"
+    ]
   }
 }

@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
@@ -49,7 +49,7 @@ contract PoolTogetherAdapter is ProtocolAdapter {
      * @param token Address of the pool!
      * @dev Implementation of ProtocolAdapter abstract contract function.
      */
-    function getBalance(address token, address account) public override returns (int256) {
+    function getBalance(address token, address account) public view override returns (int256) {
         int256 totalBalance = int256(BasePool(token).totalBalanceOf(account));
         if (token == DAI_POOL) {
             totalBalance += int256(getPodBalance(DAI_POD, account));

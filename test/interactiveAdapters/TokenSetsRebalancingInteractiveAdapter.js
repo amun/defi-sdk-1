@@ -1,23 +1,11 @@
 import convertToShare from '../helpers/convertToShare';
+import convertToBytes32 from '../helpers/convertToBytes32';
 import expectRevert from '../helpers/expectRevert';
 
-const TOKENSETS_ADAPTER = web3.eth.abi.encodeParameter(
-  'bytes32',
-  web3.utils.toHex('Curve'),
-).slice(0, -2);
-const UNISWAP_V1_ADAPTER = web3.eth.abi.encodeParameter(
-  'bytes32',
-  web3.utils.toHex('Uniswap V1'),
-).slice(0, -2);
-const WETH_ADAPTER = web3.eth.abi.encodeParameter(
-  'bytes32',
-  web3.utils.toHex('Weth'),
-).slice(0, -2);
-const ASSET_ADAPTER = '01';
-const EXCHANGE_ADAPTER = '03';
-const TOKENSETS_ASSET_ADAPTER = `${TOKENSETS_ADAPTER}${ASSET_ADAPTER}`;
-const WETH_ASSET_ADAPTER = `${WETH_ADAPTER}${ASSET_ADAPTER}`;
-const UNISWAP_V1_EXCHANGE_ADAPTER = `${UNISWAP_V1_ADAPTER}${EXCHANGE_ADAPTER}`;
+const TOKENSETS_ASSET_ADAPTER = convertToBytes32('TokenSets Rebalancing');
+const UNISWAP_V2_EXCHANGE_ADAPTER = convertToBytes32('Uniswap V1 Exchange');
+const WETH_ASSET_ADAPTER = convertToBytes32('Weth');
+const COMPOUND_ASSET_ADAPTER = convertToBytes32('Compound');
 
 const ACTION_DEPOSIT = 1;
 const ACTION_WITHDRAW = 2;
@@ -28,20 +16,22 @@ const EMPTY_BYTES = '0x';
 const ZERO = '0x0000000000000000000000000000000000000000';
 
 const ProtocolAdapterRegistry = artifacts.require('./ProtocolAdapterRegistry');
-const TokenSetsAdapter = artifacts.require('./TokenSetsInteractiveAdapter');
-const ERC20TokenAdapter = artifacts.require('./ERC20TokenAdapter');
+const TokenSetsAdapter = artifacts.require('./TokenSetsRebalancingInteractiveAdapter');
 const WethInteractiveAdapter = artifacts.require('./WethInteractiveAdapter');
-const UniswapV1ExchangeAdapter = artifacts.require('./UniswapV1ExchangeInteractiveAdapter');
+const UniswapV1ExchangeAdapter = artifacts.require('./UniswapV2ExchangeInteractiveAdapter');
+const CompoundAssetAdapter = artifacts.require('./CompoundAssetInteractiveAdapter');
 const Core = artifacts.require('./Core');
 const Router = artifacts.require('./Router');
 const ERC20 = artifacts.require('./ERC20');
 
-contract('TokenSetsInteractiveAdapter', () => {
+contract('TokenSetsRebalancingInteractiveAdapter', () => {
   const ethAddress = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-  const usdcAddress = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+  const linkAddress = '0x514910771AF9Ca656af840dff83E8264EcF986CA';
   const wethAddress = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
-  const daiAddress = '0x6B175474E89094C44Da98b954EedeAC495271d0F';
-  const setAddress = '0x8ddf05c42c698329053c4f39b5bb05a350fd8132';
+  const setAddress = '0x542156d51d10db5accb99f9db7e7c91b74e80a2c';
+  const cSetAddress = '0xB647a1D7633c6C4d434e22eE9756b36F2b219525';
+  const usdcAddress = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+  const cusdcAddress = '0x39AA39c021dfbaE8faC545936693aC917d5E7563';
 
   let accounts;
   let core;
@@ -50,11 +40,13 @@ contract('TokenSetsInteractiveAdapter', () => {
   let tokenSetsAdapterAddress;
   let wethAdapterAddress;
   let uniswapAdapterAddress;
-  let erc20TokenAdapterAddress;
+  let compoundAdapterAddress;
 
-  let USDC;
+  let LINK;
   let WETH;
+  let CUSDC;
   let SET;
+  let cSET;
 
   beforeEach(async () => {
     accounts = await web3.eth.getAccounts();
@@ -70,9 +62,9 @@ contract('TokenSetsInteractiveAdapter', () => {
       .then((result) => {
         uniswapAdapterAddress = result.address;
       });
-    await ERC20TokenAdapter.new({ from: accounts[0] })
+    await CompoundAssetAdapter.new({ from: accounts[0] })
       .then((result) => {
-        erc20TokenAdapterAddress = result.address;
+        compoundAdapterAddress = result.address;
       });
     await ProtocolAdapterRegistry.new({ from: accounts[0] })
       .then((result) => {
@@ -82,26 +74,21 @@ contract('TokenSetsInteractiveAdapter', () => {
       [
         TOKENSETS_ASSET_ADAPTER,
         WETH_ASSET_ADAPTER,
-        UNISWAP_V1_EXCHANGE_ADAPTER,
+        UNISWAP_V2_EXCHANGE_ADAPTER,
+        COMPOUND_ASSET_ADAPTER,
       ],
       [
         tokenSetsAdapterAddress,
         wethAdapterAddress,
         uniswapAdapterAddress,
+        compoundAdapterAddress,
       ],
       [
         [],
         [],
         [],
+        [],
       ],
-    )
-      .send({
-        from: accounts[0],
-        gas: '1000000',
-      });
-    await protocolAdapterRegistry.methods.addTokenAdapters(
-      [web3.utils.toHex('ERC20')],
-      [erc20TokenAdapterAddress],
     )
       .send({
         from: accounts[0],
@@ -121,131 +108,133 @@ contract('TokenSetsInteractiveAdapter', () => {
       .then((result) => {
         router = result.contract;
       });
-    await ERC20.at(usdcAddress)
+    await ERC20.at(linkAddress)
       .then((result) => {
-        USDC = result.contract;
+        LINK = result.contract;
       });
     await ERC20.at(wethAddress)
       .then((result) => {
         WETH = result.contract;
       });
+    await ERC20.at(cusdcAddress)
+      .then((result) => {
+        CUSDC = result.contract;
+      });
     await ERC20.at(setAddress)
       .then((result) => {
         SET = result.contract;
       });
+    await ERC20.at(cSetAddress)
+      .then((result) => {
+        cSET = result.contract;
+      });
   });
-  describe('Scenario ETH <-> WETH/USDC set', () => {
-    it('should not buy token sets for 1 ether with inconsistent tokens/amounts', async () => {
-      const actions = [
-        // exchange ETH to USDC
-        [
-          UNISWAP_V1_EXCHANGE_ADAPTER,
-          ACTION_DEPOSIT,
-          [ethAddress],
-          [convertToShare(0.52)],
-          [AMOUNT_RELATIVE],
-          web3.eth.abi.encodeParameter('address', usdcAddress),
-        ],
-        // exchange ETH to WETH
-        [
-          WETH_ASSET_ADAPTER,
-          ACTION_DEPOSIT,
-          [ethAddress],
-          [convertToShare(1)], // 100% of the remaining
-          [AMOUNT_RELATIVE],
-          EMPTY_BYTES,
-        ],
-        [
-          TOKENSETS_ASSET_ADAPTER,
-          ACTION_DEPOSIT,
-          [
-            wethAddress,
-            usdcAddress,
-          ],
-          [
-            convertToShare(1),
-            convertToShare(1),
-            convertToShare(1),
-          ],
-          [
-            AMOUNT_RELATIVE,
-            AMOUNT_RELATIVE,
-            AMOUNT_RELATIVE,
-          ],
-          web3.eth.abi.encodeParameter(
-            'address',
-            setAddress,
-          ),
-        ],
-      ];
-      // console.log(actions);
-      await expectRevert(router.methods.execute(
-        actions,
-        [],
-        [],
-      )
-        .send({
-          from: accounts[0],
-          gas: 5000000,
-          value: web3.utils.toWei('1', 'ether'),
-        }));
-    });
 
-    it('should not buy token sets for 1 ether with wrong tokens', async () => {
+  describe('Scenario ETH <-> WETH/LINK set', () => {
+    it('should buy token sets (with c token inside) for 1 ether', async () => {
+      await web3.eth.getBalance(accounts[0])
+        .then((result) => {
+          console.log(`eth amount before is  ${web3.utils.fromWei(result, 'ether')}`);
+        });
+      await WETH.methods['balanceOf(address)'](accounts[0])
+        .call()
+        .then((result) => {
+          console.log(`weth amount before is ${web3.utils.fromWei(result, 'ether')}`);
+        });
+      await CUSDC.methods['balanceOf(address)'](accounts[0])
+        .call()
+        .then((result) => {
+          console.log(`cusdc amount before is ${web3.utils.fromWei(`${result.toString()}0`, 'gwei')}`);
+        });
+      await cSET.methods['balanceOf(address)'](accounts[0])
+        .call()
+        .then((result) => {
+          console.log(`cset amount before is ${web3.utils.fromWei(result, 'ether')}`);
+        });
       const actions = [
-        // exchange ETH to USDC
-        [
-          UNISWAP_V1_EXCHANGE_ADAPTER,
-          ACTION_DEPOSIT,
-          [ethAddress],
-          [convertToShare(0.52)],
-          [AMOUNT_RELATIVE],
-          web3.eth.abi.encodeParameter('address', usdcAddress),
-        ],
         // exchange ETH to WETH
         [
           WETH_ASSET_ADAPTER,
           ACTION_DEPOSIT,
-          [ethAddress],
-          [convertToShare(1)], // 100% of the remaining
-          [AMOUNT_RELATIVE],
+          [
+            [ethAddress, convertToShare(1), AMOUNT_RELATIVE],
+          ],
+          EMPTY_BYTES,
+        ],
+        // exchange WETH to USDC
+        [
+          UNISWAP_V2_EXCHANGE_ADAPTER,
+          ACTION_DEPOSIT,
+          [
+            [wethAddress, convertToShare(1), AMOUNT_RELATIVE],
+          ],
+          web3.eth.abi.encodeParameter('address[]', [wethAddress, usdcAddress]),
+        ],
+        [
+          COMPOUND_ASSET_ADAPTER,
+          ACTION_DEPOSIT,
+          [
+            [usdcAddress, convertToShare(1), AMOUNT_RELATIVE],
+          ],
           EMPTY_BYTES,
         ],
         [
           TOKENSETS_ASSET_ADAPTER,
           ACTION_DEPOSIT,
           [
-            wethAddress,
-            usdcAddress,
-            daiAddress,
-          ],
-          [
-            convertToShare(1),
-            convertToShare(1),
-            convertToShare(1),
-          ],
-          [
-            AMOUNT_RELATIVE,
-            AMOUNT_RELATIVE,
-            AMOUNT_RELATIVE,
+            [cusdcAddress, convertToShare(1), AMOUNT_RELATIVE],
           ],
           web3.eth.abi.encodeParameter(
             'address',
-            setAddress,
+            cSetAddress,
           ),
         ],
       ];
       // console.log(actions);
-      await expectRevert(router.methods.execute(
+      await router.methods.execute(
         actions,
         [],
+        [0, ZERO],
         [],
       )
         .send({
           from: accounts[0],
           gas: 5000000,
           value: web3.utils.toWei('1', 'ether'),
-        }));
+        });
+      await web3.eth.getBalance(accounts[0])
+        .then((result) => {
+          console.log(`eth amount after is   ${web3.utils.fromWei(result, 'ether')}`);
+        });
+      await WETH.methods['balanceOf(address)'](accounts[0])
+        .call()
+        .then((result) => {
+          console.log(`weth amount after is  ${web3.utils.fromWei(result, 'ether')}`);
+        });
+      await CUSDC.methods['balanceOf(address)'](accounts[0])
+        .call()
+        .then((result) => {
+          console.log(`cusdc amount after is  ${web3.utils.fromWei(`${result.toString()}0`, 'gwei')}`);
+        });
+      await cSET.methods['balanceOf(address)'](accounts[0])
+        .call()
+        .then((result) => {
+          console.log(`cset amount after is  ${web3.utils.fromWei(result, 'ether')}`);
+        });
+      await CUSDC.methods['balanceOf(address)'](core.options.address)
+        .call()
+        .then((result) => {
+          assert.equal(result, 0, 'cusdc');
+        });
+      await cSET.methods['balanceOf(address)'](core.options.address)
+        .call()
+        .then((result) => {
+          assert.equal(result, 0, 'cset');
+        });
+      await web3.eth.getBalance(core.options.address)
+        .then((result) => {
+          assert.equal(result, 0, 'eth');
+        });
     });
 
     it('should buy token sets for 1 ether', async () => {
@@ -258,10 +247,10 @@ contract('TokenSetsInteractiveAdapter', () => {
         .then((result) => {
           console.log(`weth amount before is ${web3.utils.fromWei(result, 'ether')}`);
         });
-      await USDC.methods['balanceOf(address)'](accounts[0])
+      await LINK.methods['balanceOf(address)'](accounts[0])
         .call()
         .then((result) => {
-          console.log(`usdc amount before is ${web3.utils.fromWei(result, 'mwei')}`);
+          console.log(`link amount before is ${web3.utils.fromWei(result, 'ether')}`);
         });
       await SET.methods['balanceOf(address)'](accounts[0])
         .call()
@@ -269,38 +258,30 @@ contract('TokenSetsInteractiveAdapter', () => {
           console.log(`set amount before is  ${web3.utils.fromWei(result, 'ether')}`);
         });
       const actions = [
-        // exchange ETH to USDC
-        [
-          UNISWAP_V1_EXCHANGE_ADAPTER,
-          ACTION_DEPOSIT,
-          [ethAddress],
-          [convertToShare(0.52)],
-          [AMOUNT_RELATIVE],
-          web3.eth.abi.encodeParameter('address', usdcAddress),
-        ],
         // exchange ETH to WETH
         [
           WETH_ASSET_ADAPTER,
           ACTION_DEPOSIT,
-          [ethAddress],
-          [convertToShare(1)], // 100% of the remaining
-          [AMOUNT_RELATIVE],
+          [
+            [ethAddress, convertToShare(1), AMOUNT_RELATIVE],
+          ],
           EMPTY_BYTES,
+        ],
+        // exchange ETH to LINK
+        [
+          UNISWAP_V2_EXCHANGE_ADAPTER,
+          ACTION_DEPOSIT,
+          [
+            [wethAddress, convertToShare(0.1317), AMOUNT_RELATIVE],
+          ],
+          web3.eth.abi.encodeParameter('address[]', [wethAddress, linkAddress]),
         ],
         [
           TOKENSETS_ASSET_ADAPTER,
           ACTION_DEPOSIT,
           [
-            wethAddress,
-            usdcAddress,
-          ],
-          [
-            convertToShare(1),
-            convertToShare(1),
-          ],
-          [
-            AMOUNT_RELATIVE,
-            AMOUNT_RELATIVE,
+            [linkAddress, convertToShare(1), AMOUNT_RELATIVE],
+            [wethAddress, convertToShare(1), AMOUNT_RELATIVE],
           ],
           web3.eth.abi.encodeParameter(
             'address',
@@ -312,45 +293,39 @@ contract('TokenSetsInteractiveAdapter', () => {
       await router.methods.execute(
         actions,
         [],
+        [0, ZERO],
         [],
       )
         .send({
           from: accounts[0],
           gas: 5000000,
           value: web3.utils.toWei('1', 'ether'),
-        })
-        .then((receipt) => {
-          console.log(`called router for ${receipt.cumulativeGasUsed} gas`);
         });
-      // console.log(router.methods.execute(
-      //   actions,
-      //   [],
-      // ).encodeABI());
       await web3.eth.getBalance(accounts[0])
         .then((result) => {
-          console.log(`eth amount after is  ${web3.utils.fromWei(result, 'ether')}`);
+          console.log(`eth amount after is   ${web3.utils.fromWei(result, 'ether')}`);
         });
       await WETH.methods['balanceOf(address)'](accounts[0])
         .call()
         .then((result) => {
-          console.log(`weth amount after is ${web3.utils.fromWei(result, 'ether')}`);
+          console.log(`weth amount after is  ${web3.utils.fromWei(result, 'ether')}`);
         });
-      await USDC.methods['balanceOf(address)'](accounts[0])
+      await LINK.methods['balanceOf(address)'](accounts[0])
         .call()
         .then((result) => {
-          console.log(`usdc amount after is ${web3.utils.fromWei(result, 'mwei')}`);
+          console.log(`link amount after is  ${web3.utils.fromWei(result, 'ether')}`);
         });
       await SET.methods['balanceOf(address)'](accounts[0])
         .call()
         .then((result) => {
-          console.log(`set amount after is  ${web3.utils.fromWei(result, 'ether')}`);
+          console.log(`set amount after is   ${web3.utils.fromWei(result, 'ether')}`);
         });
       await WETH.methods['balanceOf(address)'](core.options.address)
         .call()
         .then((result) => {
           assert.equal(result, 0);
         });
-      await USDC.methods['balanceOf(address)'](core.options.address)
+      await LINK.methods['balanceOf(address)'](core.options.address)
         .call()
         .then((result) => {
           assert.equal(result, 0);
@@ -366,7 +341,7 @@ contract('TokenSetsInteractiveAdapter', () => {
         });
     });
 
-    it('should not sell all token set for eth if wrong tokens', async () => {
+    it('should not sell all token set for eth with wrong tokens', async () => {
       let setAmount;
       await SET.methods['balanceOf(address)'](accounts[0])
         .call()
@@ -384,33 +359,27 @@ contract('TokenSetsInteractiveAdapter', () => {
           TOKENSETS_ASSET_ADAPTER,
           ACTION_WITHDRAW,
           [
-            setAddress,
-            setAddress,
-          ],
-          [
-            convertToShare(1),
-          ],
-          [
-            AMOUNT_RELATIVE,
+            [setAddress, convertToShare(1), AMOUNT_RELATIVE],
+            [setAddress, convertToShare(1), AMOUNT_RELATIVE],
           ],
           EMPTY_BYTES,
         ],
-        // swap change (in USDC) back to ETH
+        // swap change (in LINK) back to ETH
         [
-          UNISWAP_V1_EXCHANGE_ADAPTER,
+          UNISWAP_V2_EXCHANGE_ADAPTER,
           ACTION_DEPOSIT,
-          [usdcAddress],
-          [convertToShare(1)],
-          [AMOUNT_RELATIVE],
-          web3.eth.abi.encodeParameter('address', ethAddress),
+          [
+            [linkAddress, convertToShare(1), AMOUNT_RELATIVE],
+          ],
+          web3.eth.abi.encodeParameter('address[]', [linkAddress, wethAddress]),
         ],
         // swap change (in WETH) back to ETH
         [
           WETH_ASSET_ADAPTER,
           ACTION_WITHDRAW,
-          [wethAddress],
-          [convertToShare(1)],
-          [AMOUNT_RELATIVE],
+          [
+            [wethAddress, convertToShare(1), AMOUNT_RELATIVE],
+          ],
           EMPTY_BYTES,
         ],
       ];
@@ -418,71 +387,9 @@ contract('TokenSetsInteractiveAdapter', () => {
       await expectRevert(router.methods.execute(
         actions,
         [
-          [setAddress, convertToShare(1), AMOUNT_RELATIVE, 0, ZERO],
+          [setAddress, convertToShare(1), AMOUNT_RELATIVE],
         ],
-        [],
-      )
-        .send({
-          from: accounts[0],
-          gas: 5000000,
-        }));
-    });
-
-    it('should not sell all token set for eth if wrong tokens', async () => {
-      let setAmount;
-      await SET.methods['balanceOf(address)'](accounts[0])
-        .call()
-        .then((result) => {
-          setAmount = result;
-        });
-      await SET.methods.approve(router.options.address, setAmount)
-        .send({
-          from: accounts[0],
-          gas: 1000000,
-        });
-      const actions = [
-        // withdraw to all sets
-        [
-          TOKENSETS_ASSET_ADAPTER,
-          ACTION_WITHDRAW,
-          [
-            setAddress,
-          ],
-          [
-            convertToShare(1),
-            convertToShare(1),
-          ],
-          [
-            AMOUNT_RELATIVE,
-            AMOUNT_RELATIVE,
-          ],
-          EMPTY_BYTES,
-        ],
-        // swap change (in USDC) back to ETH
-        [
-          UNISWAP_V1_EXCHANGE_ADAPTER,
-          ACTION_DEPOSIT,
-          [usdcAddress],
-          [convertToShare(1)],
-          [AMOUNT_RELATIVE],
-          web3.eth.abi.encodeParameter('address', ethAddress),
-        ],
-        // swap change (in WETH) back to ETH
-        [
-          WETH_ASSET_ADAPTER,
-          ACTION_WITHDRAW,
-          [wethAddress],
-          [convertToShare(1)],
-          [AMOUNT_RELATIVE],
-          EMPTY_BYTES,
-        ],
-      ];
-      // console.log(actions);
-      await expectRevert(router.methods.execute(
-        actions,
-        [
-          [setAddress, convertToShare(1), AMOUNT_RELATIVE, 0, ZERO],
-        ],
+        [0, ZERO],
         [],
       )
         .send({
@@ -502,10 +409,10 @@ contract('TokenSetsInteractiveAdapter', () => {
         .then((result) => {
           console.log(`weth amount before is ${web3.utils.fromWei(result, 'ether')}`);
         });
-      await USDC.methods['balanceOf(address)'](accounts[0])
+      await LINK.methods['balanceOf(address)'](accounts[0])
         .call()
         .then((result) => {
-          console.log(`usdc amount before is ${web3.utils.fromWei(result, 'mwei')}`);
+          console.log(`LINK amount before is ${web3.utils.fromWei(result, 'ether')}`);
         });
       await SET.methods['balanceOf(address)'](accounts[0])
         .call()
@@ -524,32 +431,26 @@ contract('TokenSetsInteractiveAdapter', () => {
           TOKENSETS_ASSET_ADAPTER,
           ACTION_WITHDRAW,
           [
-            setAddress,
-          ],
-          [
-            convertToShare(1),
-          ],
-          [
-            AMOUNT_RELATIVE,
+            [setAddress, convertToShare(1), AMOUNT_RELATIVE],
           ],
           EMPTY_BYTES,
         ],
-        // swap change (in USDC) back to ETH
+        // swap change (in LINK) back to ETH
         [
-          UNISWAP_V1_EXCHANGE_ADAPTER,
+          UNISWAP_V2_EXCHANGE_ADAPTER,
           ACTION_DEPOSIT,
-          [usdcAddress],
-          [convertToShare(1)],
-          [AMOUNT_RELATIVE],
-          web3.eth.abi.encodeParameter('address', ethAddress),
+          [
+            [linkAddress, convertToShare(1), AMOUNT_RELATIVE],
+          ],
+          web3.eth.abi.encodeParameter('address[]', [linkAddress, wethAddress]),
         ],
         // swap change (in WETH) back to ETH
         [
           WETH_ASSET_ADAPTER,
           ACTION_WITHDRAW,
-          [wethAddress],
-          [convertToShare(1)],
-          [AMOUNT_RELATIVE],
+          [
+            [wethAddress, convertToShare(1), AMOUNT_RELATIVE],
+          ],
           EMPTY_BYTES,
         ],
       ];
@@ -557,8 +458,9 @@ contract('TokenSetsInteractiveAdapter', () => {
       await router.methods.execute(
         actions,
         [
-          [setAddress, convertToShare(1), AMOUNT_RELATIVE, 0, ZERO],
+          [setAddress, convertToShare(1), AMOUNT_RELATIVE],
         ],
+        [0, ZERO],
         [],
       )
         .send({
@@ -577,10 +479,10 @@ contract('TokenSetsInteractiveAdapter', () => {
         .then((result) => {
           console.log(`weth amount after is ${web3.utils.fromWei(result, 'ether')}`);
         });
-      await USDC.methods['balanceOf(address)'](accounts[0])
+      await LINK.methods['balanceOf(address)'](accounts[0])
         .call()
         .then((result) => {
-          console.log(`usdc amount after is ${web3.utils.fromWei(result, 'mwei')}`);
+          console.log(`LINK amount after is ${web3.utils.fromWei(result, 'ether')}`);
         });
       await SET.methods['balanceOf(address)'](accounts[0])
         .call()
@@ -592,7 +494,7 @@ contract('TokenSetsInteractiveAdapter', () => {
         .then((result) => {
           assert.equal(result, 0);
         });
-      await USDC.methods['balanceOf(address)'](core.options.address)
+      await LINK.methods['balanceOf(address)'](core.options.address)
         .call()
         .then((result) => {
           assert.equal(result, 0);

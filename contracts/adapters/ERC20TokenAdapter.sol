@@ -15,10 +15,10 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../shared/ERC20.sol";
+import { ERC20 } from "../interfaces/ERC20.sol";
 import { ERC20Metadata, Component } from "../shared/Structs.sol";
 import { TokenAdapter } from "./TokenAdapter.sol";
 import { Helpers } from "../shared/Helpers.sol";
@@ -39,7 +39,7 @@ contract ERC20TokenAdapter is TokenAdapter {
      * @return Empty Component array.
      * @dev Implementation of TokenAdapter abstract contract function.
      */
-    function getComponents(address) external override returns (Component[] memory) {
+    function getComponents(address) external pure override returns (Component[] memory) {
         return new Component[](0);
     }
 
@@ -65,9 +65,8 @@ contract ERC20TokenAdapter is TokenAdapter {
      */
     function getName(address token) internal view override returns (string memory) {
         // solhint-disable-next-line avoid-low-level-calls
-        (, bytes memory returnData) = token.staticcall(
-            abi.encodeWithSelector(ERC20(token).name.selector)
-        );
+        (, bytes memory returnData) =
+            token.staticcall(abi.encodeWithSelector(ERC20.name.selector));
 
         return parseReturnData(returnData);
     }
@@ -77,9 +76,8 @@ contract ERC20TokenAdapter is TokenAdapter {
      */
     function getSymbol(address token) internal view override returns (string memory) {
         // solhint-disable-next-line avoid-low-level-calls
-        (, bytes memory returnData) = token.staticcall(
-            abi.encodeWithSelector(ERC20(token).symbol.selector)
-        );
+        (, bytes memory returnData) =
+            token.staticcall(abi.encodeWithSelector(ERC20.symbol.selector));
 
         return parseReturnData(returnData);
     }
