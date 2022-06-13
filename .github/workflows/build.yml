@@ -1,6 +1,5 @@
 name: build
-on:
-  push
+on: push
 
 jobs:
   coverage:
@@ -12,13 +11,9 @@ jobs:
       - name: setup-node
         uses: actions/setup-node@v1
         with:
-          node-version: '10.x'
-      - name: webfactory/ssh-agent
-        uses: webfactory/ssh-agent@v0.4.1
-        with:
-          ssh-private-key: ${{ secrets.PRIVATE_SSH }}
+          node-version: "10.x"
       - name: install
-        run: npm ci
+        run: npm install
       - name: build
         run: npm run compile
       - name: upload artifacts

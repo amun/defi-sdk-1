@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
@@ -33,7 +33,7 @@ contract DSRAdapter is ProtocolAdapter, MKRAdapter {
      * @dev Implementation of ProtocolAdapter abstract contract function.
      * This function repeats the calculations made in drip() function of Pot contract.
      */
-    function getBalance(address, address account) public override returns (int256) {
+    function getBalance(address, address account) public view override returns (int256) {
         Pot pot = Pot(POT);
         // solhint-disable-next-line not-rely-on-time
         uint256 chi = mkrRmul(mkrRpow(pot.dsr(), block.timestamp - pot.rho(), ONE), pot.chi());

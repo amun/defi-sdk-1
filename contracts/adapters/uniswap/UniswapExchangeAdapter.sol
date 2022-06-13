@@ -15,10 +15,10 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../../shared/ERC20.sol";
+import { ERC20 } from "../../interfaces/ERC20.sol";
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
 
 /**
@@ -32,7 +32,7 @@ contract UniswapExchangeAdapter is ProtocolAdapter {
      * @notice This function is unavailable for exchange adapter.
      * @dev Implementation of ProtocolAdapter abstract contract function.
      */
-    function getBalance(address, address) public override returns (int256) {
+    function getBalance(address, address) public pure override returns (int256) {
         revert("UEA: no balance");
     }
 }

@@ -15,10 +15,10 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../../shared/ERC20.sol";
+import { ERC20 } from "../../interfaces/ERC20.sol";
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
 import { SavingsContract } from "../../interfaces/SavingsContract.sol";
 
@@ -34,7 +34,7 @@ contract MstableAssetAdapter is ProtocolAdapter {
      * @return Amount of mUSD owned and locked on the protocol by the given account.
      * @dev Implementation of ProtocolAdapter abstract contract function.
      */
-    function getBalance(address, address account) public override returns (int256) {
+    function getBalance(address, address account) public view override returns (int256) {
         uint256 credits = SavingsContract(SAVINGS).creditBalances(account);
         uint256 exchangeRate = SavingsContract(SAVINGS).exchangeRate();
 

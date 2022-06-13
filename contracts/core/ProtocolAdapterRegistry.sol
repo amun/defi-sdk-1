@@ -15,11 +15,11 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { AdapterBalance, TokenBalance } from "../shared/Structs.sol";
-import { ERC20 } from "../shared/ERC20.sol";
+import { ERC20 } from "../interfaces/ERC20.sol";
 import { Ownable } from "./Ownable.sol";
 import { ProtocolAdapterManager } from "./ProtocolAdapterManager.sol";
 import { ProtocolAdapter } from "../adapters/ProtocolAdapter.sol";
@@ -65,7 +65,7 @@ contract ProtocolAdapterRegistry is Ownable, ProtocolAdapterManager {
         for (uint256 i = 0; i < length; i++) {
             adapterBalances[i] = getAdapterBalance(
                 protocolAdapterNames[i],
-                getSupportedTokens(protocolAdapterNames[i]),
+                getProtocolAdapterSupportedTokens(protocolAdapterNames[i]),
                 account
             );
         }
@@ -111,7 +111,7 @@ contract ProtocolAdapterRegistry is Ownable, ProtocolAdapterManager {
      */
     function getNonZeroAdapterBalancesAndTokenBalancesNumbers(
         AdapterBalance[] memory adapterBalances
-    ) internal returns (uint256, uint256[] memory) {
+    ) internal pure returns (uint256, uint256[] memory) {
         uint256 length = adapterBalances.length;
         uint256 nonZeroAdapterBalancesNumber = 0;
         uint256[] memory nonZeroTokenBalancesNumbers = new uint256[](length);
@@ -135,6 +135,7 @@ contract ProtocolAdapterRegistry is Ownable, ProtocolAdapterManager {
      */
     function getNonZeroTokenBalancesNumber(TokenBalance[] memory tokenBalances)
         internal
+        pure
         returns (uint256)
     {
         uint256 length = tokenBalances.length;
@@ -159,7 +160,7 @@ contract ProtocolAdapterRegistry is Ownable, ProtocolAdapterManager {
         AdapterBalance[] memory adapterBalances,
         uint256 nonZeroAdapterBalancesNumber,
         uint256[] memory nonZeroTokenBalancesNumbers
-    ) internal returns (AdapterBalance[] memory) {
+    ) internal pure returns (AdapterBalance[] memory) {
         AdapterBalance[] memory nonZeroAdapterBalances =
             new AdapterBalance[](nonZeroAdapterBalancesNumber);
         uint256 length = adapterBalances.length;
@@ -192,7 +193,7 @@ contract ProtocolAdapterRegistry is Ownable, ProtocolAdapterManager {
     function getNonZeroTokenBalances(
         TokenBalance[] memory tokenBalances,
         uint256 nonZeroTokenBalancesNumber
-    ) internal returns (TokenBalance[] memory) {
+    ) internal pure returns (TokenBalance[] memory) {
         TokenBalance[] memory nonZeroTokenBalances =
             new TokenBalance[](nonZeroTokenBalancesNumber);
         uint256 length = tokenBalances.length;

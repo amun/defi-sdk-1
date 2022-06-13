@@ -15,12 +15,12 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { ProtocolAdapter } from "../adapters/ProtocolAdapter.sol";
 import { TokenAmount, AmountType } from "../shared/Structs.sol";
-import { ERC20 } from "../shared/ERC20.sol";
+import { ERC20 } from "../interfaces/ERC20.sol";
 
 /**
  * @title Base contract for interactive protocol adapters.
@@ -79,7 +79,7 @@ abstract contract InteractiveAdapter is ProtocolAdapter {
             if (amount == DELIMITER) {
                 return balance;
             } else {
-                return mul(balance, amount) / DELIMITER;
+                return mul_(balance, amount) / DELIMITER;
             }
         } else {
             return amount;
@@ -107,14 +107,14 @@ abstract contract InteractiveAdapter is ProtocolAdapter {
             if (amount == DELIMITER) {
                 return balance;
             } else {
-                return mul(balance, amount) / DELIMITER;
+                return mul_(balance, amount) / DELIMITER;
             }
         } else {
             return amount;
         }
     }
 
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    function mul_(uint256 a, uint256 b) internal pure returns (uint256) {
         if (a == 0) {
             return 0;
         }

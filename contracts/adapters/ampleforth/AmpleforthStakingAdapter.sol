@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
@@ -52,7 +52,7 @@ contract AmpleforthStakingAdapter is ProtocolAdapter {
      * @return Amount of UNI-tokens locked on the protocol by the given account.
      * @dev Implementation of ProtocolAdapter abstract contract function.
      */
-    function getBalance(address token, address account) public override returns (int256) {
+    function getBalance(address token, address account) public view override returns (int256) {
         if (token == stakingToken_) {
             int256 totalBalance = 0;
             uint256 length = geysers_.length;

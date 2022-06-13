@@ -15,10 +15,10 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../../shared/ERC20.sol";
+import { ERC20 } from "../../interfaces/ERC20.sol";
 import { Component } from "../../shared/Structs.sol";
 import { TokenAdapter } from "../TokenAdapter.sol";
 import { Helpers } from "../../shared/Helpers.sol";
@@ -42,7 +42,7 @@ contract UniswapV1TokenAdapter is TokenAdapter {
      * @return Array of Component structs with underlying tokens rates for the given token.
      * @dev Implementation of TokenAdapter abstract contract function.
      */
-    function getComponents(address token) external override returns (Component[] memory) {
+    function getComponents(address token) external view override returns (Component[] memory) {
         address underlyingToken = Factory(FACTORY).getToken(token);
         uint256 totalSupply = ERC20(token).totalSupply();
 
@@ -95,9 +95,8 @@ contract UniswapV1TokenAdapter is TokenAdapter {
     }
 
     function getUnderlyingSymbol(address token) internal view returns (string memory) {
-        (, bytes memory returnData) = token.staticcall(
-            abi.encodeWithSelector(ERC20(token).symbol.selector)
-        );
+        (, bytes memory returnData) =
+            token.staticcall(abi.encodeWithSelector(ERC20.symbol.selector));
 
         if (returnData.length == 32) {
             return abi.decode(returnData, (bytes32)).toString();

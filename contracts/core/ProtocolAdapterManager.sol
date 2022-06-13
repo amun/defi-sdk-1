@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { Ownable } from "./Ownable.sol";
@@ -114,7 +114,7 @@ abstract contract ProtocolAdapterManager is Ownable {
      * @param protocolAdapterName Name of the protocol adapter.
      * @return Array of protocol adapter's supported tokens.
      */
-    function getSupportedTokens(bytes32 protocolAdapterName)
+    function getProtocolAdapterSupportedTokens(bytes32 protocolAdapterName)
         public
         view
         returns (address[] memory)

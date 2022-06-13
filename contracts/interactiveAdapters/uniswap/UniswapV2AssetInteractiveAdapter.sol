@@ -15,10 +15,10 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../../shared/ERC20.sol";
+import { ERC20 } from "../../interfaces/ERC20.sol";
 import { SafeERC20 } from "../../shared/SafeERC20.sol";
 import { TokenAmount } from "../../shared/Structs.sol";
 import { ERC20ProtocolAdapter } from "../../adapters/ERC20ProtocolAdapter.sol";
@@ -33,13 +33,11 @@ import { UniswapV2Pair } from "../../interfaces/UniswapV2Pair.sol";
 contract UniswapV2AssetInteractiveAdapter is InteractiveAdapter, ERC20ProtocolAdapter {
     using SafeERC20 for ERC20;
 
-    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-
     /**
      * @notice Deposits tokens to the Uniswap pool (pair).
      * @param tokenAmounts Array with one element - TokenAmount struct with
      * underlying tokens addresses, underlying tokens amounts to be deposited, and amount types.
-     * @param data ABI-encoded additional parameters:
+     * @param data ABI-encoded additional parameter:
      *     - pair - pair address.
      * @return tokensToBeWithdrawn Array with one element - UNI-token (pair) address.
      * @dev Implementation of InteractiveAdapter function.
@@ -59,7 +57,7 @@ contract UniswapV2AssetInteractiveAdapter is InteractiveAdapter, ERC20ProtocolAd
         uint256 amount0 = getAbsoluteAmountDeposit(tokenAmounts[0]);
         uint256 amount1 = getAbsoluteAmountDeposit(tokenAmounts[1]);
 
-        (uint256 reserve0, uint256 reserve1) = UniswapV2Pair(pair).getReserves();
+        (uint256 reserve0, uint256 reserve1, ) = UniswapV2Pair(pair).getReserves();
 
         uint256 amount1Optimal = (amount0 * reserve1) / reserve0;
         if (amount1Optimal < amount1) {

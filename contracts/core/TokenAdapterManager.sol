@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { Ownable } from "./Ownable.sol";
@@ -167,6 +167,6 @@ abstract contract TokenAdapterManager is Ownable {
      * @param tokenAdapterNames Array of token adapters' names.
      */
     function validateInput(bytes32[] calldata tokenAdapterNames) internal pure {
-        require(tokenAdapterNames.length != 0, "PAM: empty");
+        require(tokenAdapterNames.length != 0, "TAM: empty");
     }
 }

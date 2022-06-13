@@ -15,10 +15,10 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import { ERC20 } from "../../shared/ERC20.sol";
+import { ERC20 } from "../../interfaces/ERC20.sol";
 import { ProtocolAdapter } from "../ProtocolAdapter.sol";
 import { CToken } from "../../interfaces/CToken.sol";
 
@@ -65,7 +65,7 @@ contract CompoundGovernanceAdapter is ProtocolAdapter {
      * @return Amount of unclaimed COMP by the given account.
      * @dev Implementation of ProtocolAdapter interface function.
      */
-    function getBalance(address, address account) public override returns (int256) {
+    function getBalance(address, address account) public view override returns (int256) {
         uint256 balance = Comptroller(COMPTROLLER).compAccrued(account);
         address[] memory allMarkets = Comptroller(COMPTROLLER).getAllMarkets();
 
@@ -84,8 +84,9 @@ contract CompoundGovernanceAdapter is ProtocolAdapter {
             uint256 borrowIndex = uint256(Comptroller(COMPTROLLER).compBorrowState(cToken).index);
             require(borrowIndex >= borrowerIndex, "CGA: underflow");
             uint256 deltaIndex = borrowIndex - borrowerIndex;
-            uint256 borrowerAmount = mul(CToken(cToken).borrowBalanceStored(account), 1e18) /
-                CToken(cToken).borrowIndex();
+            uint256 borrowerAmount =
+                mul(CToken(cToken).borrowBalanceStored(account), 1e18) /
+                    CToken(cToken).borrowIndex();
             uint256 borrowerDelta = mul(borrowerAmount, deltaIndex) / 1e36;
             return borrowerDelta;
         } else {

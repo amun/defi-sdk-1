@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 // The struct consists of TokenBalanceMeta structs for
@@ -67,18 +67,6 @@ struct Component {
 
 //=============================== Interactive Adapters Structs ====================================
 
-// The struct consists of array of actions, array of inputs,
-// fee, array of required outputs, account,
-// and salt parameter used to protect users from double spends.
-struct TransactionData {
-    Action[] actions;
-    TokenAmount[] inputs;
-    Fee fee;
-    AbsoluteTokenAmount[] requiredOutputs;
-    address account;
-    uint256 salt;
-}
-
 // The struct consists of name of the protocol adapter,
 // action type, array of token amounts,
 // and some additional data (depends on the protocol).
@@ -89,8 +77,23 @@ struct Action {
     bytes data;
 }
 
-// The struct consists of token address
-// its amount and amount type.
+// The struct consists of token address,
+// its amount, and amount type, as well as
+// permit type and calldata.
+struct Input {
+    TokenAmount tokenAmount;
+    Permit permit;
+}
+
+// The struct consists of
+// permit type and calldata.
+struct Permit {
+    PermitType permitType;
+    bytes permitCallData;
+}
+
+// The struct consists of token address,
+// its amount, and amount type.
 // 0xEeee...EEeE is used for Ether
 struct TokenAmount {
     address token;
@@ -110,9 +113,11 @@ struct Fee {
 // 0xEeee...EEeE is used for Ether
 struct AbsoluteTokenAmount {
     address token;
-    uint256 amount;
+    uint256 absoluteAmount;
 }
 
 enum ActionType { None, Deposit, Withdraw }
 
 enum AmountType { None, Relative, Absolute }
+
+enum PermitType { None, EIP2612, DAI, Yearn }

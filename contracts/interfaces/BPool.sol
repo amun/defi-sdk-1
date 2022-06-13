@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 
 /**
  * @dev BPool contract interface.
@@ -34,6 +34,10 @@ interface BPool {
         uint256,
         uint256
     ) external;
+
+    function joinPool(uint256, uint256[] calldata) external;
+
+    function exitPool(uint256, uint256[] calldata) external;
 
     function getCurrentTokens() external view returns (address[] memory);
 

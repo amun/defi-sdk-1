@@ -15,7 +15,7 @@
 //
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity 0.7.3;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import { ProtocolAdapter } from "../adapters/ProtocolAdapter.sol";
@@ -34,7 +34,7 @@ contract MockAdapter is ProtocolAdapter {
     /**
      * @return Mock balance.
      */
-    function getBalance(address token, address account) public override returns (int256) {
+    function getBalance(address token, address account) public view override returns (int256) {
         require(token == address(this), "M: Wrong token!");
         return balanceOf[account];
     }
